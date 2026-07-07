@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>暖暖倒计时</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="ambient" aria-hidden="true">
+      <span class="sun"></span>
+      <span class="cloud cloud-a"></span>
+      <span class="cloud cloud-b"></span>
+      <span class="petal p1"></span>
+      <span class="petal p2"></span>
+      <span class="petal p3"></span>
+    </div>
+
+    <div class="app-shell">
+      <aside class="side-panel">
+        <div class="brand">
+          <span class="brand-mark">100</span>
+          <div>
+            <p class="eyebrow">暖暖倒计时</p>
+            <h1>把最后的日子认真收藏</h1>
+          </div>
+        </div>
+
+        <section class="countdown-card" aria-label="倒计时概览">
+          <label for="countdown-title">倒计时名称</label>
+          <input id="countdown-title" type="text" maxlength="28" />
+
+          <div class="countdown-number">
+            <span id="days-left">100</span>
+            <small>天</small>
+          </div>
+          <p id="countdown-subtitle" class="countdown-subtitle"></p>
+
+          <div class="date-grid">
+            <label>
+              开始
+              <input id="start-date" type="date" />
+            </label>
+            <label>
+              结束
+              <input id="end-date" type="date" />
+            </label>
+          </div>
+        </section>
+
+        <nav class="tab-nav" aria-label="功能导航">
+          <button class="tab-button active" type="button" data-tab="todos">待办事项</button>
+          <button class="tab-button" type="button" data-tab="records">每日记录</button>
+          <button class="tab-button" type="button" data-tab="summary">进度汇总</button>
+          <button class="tab-button" type="button" data-tab="timeline">关键节点</button>
+        </nav>
+      </aside>
+
+      <main class="workspace">
+        <section class="workspace-head">
+          <div>
+            <p class="eyebrow">今日工作台</p>
+            <h2 id="workspace-title">待办事项</h2>
+          </div>
+          <button id="notify-button" class="soft-button" type="button">开启提醒</button>
+        </section>
+
+        <section id="todos" class="tab-panel active">
+          <div class="panel-grid">
+            <form id="todo-form" class="tool-panel">
+              <h3>必须完成</h3>
+              <input type="hidden" id="todo-id" />
+              <label>
+                事项
+                <input id="todo-title" type="text" maxlength="60" required />
+              </label>
+              <label>
+                Deadline
+                <input id="todo-deadline" type="date" required />
+              </label>
+              <label>
+                提醒时间
+                <input id="todo-reminder" type="datetime-local" />
+              </label>
+              <label>
+                提醒周期
+                <select id="todo-repeat">
+                  <option value="none">仅一次</option>
+                  <option value="daily">每天</option>
+                  <option value="weekly">每周</option>
+                  <option value="monthly">每月</option>
+                </select>
+              </label>
+              <label>
+                备注
+                <textarea id="todo-note" rows="3" maxlength="160"></textarea>
+              </label>
+              <div class="form-actions">
+                <button class="primary-button" type="submit">保存事项</button>
+                <button id="todo-reset" class="ghost-button" type="button">清空</button>
+              </div>
+            </form>
+
+            <div class="list-panel">
+              <div class="list-head">
+                <h3>待办清单</h3>
+                <span id="todo-count" class="pill">0 项</span>
+              </div>
+              <div id="todo-list" class="todo-list"></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="records" class="tab-panel">
+          <div class="panel-grid">
+            <form id="record-form" class="tool-panel">
+              <h3>给今天留一页</h3>
+              <input type="hidden" id="record-id" />
+              <label>
+                日期
+                <input id="record-date" type="date" required />
+              </label>
+              <div id="record-fields" class="record-fields"></div>
+              <button id="add-record-field" class="soft-button full" type="button">添加记录项</button>
+              <div class="form-actions">
+                <button class="primary-button" type="submit">保存记录</button>
+                <button id="record-reset" class="ghost-button" type="button">新建</button>
+              </div>
+            </form>
+
+            <div class="list-panel">
+              <div class="list-head">
+                <h3>每日记录</h3>
+                <span id="record-count" class="pill">0 天</span>
+              </div>
+              <div id="record-list" class="record-list"></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="summary" class="tab-panel">
+          <div class="summary-layout">
+            <div class="tool-panel">
+              <h3>汇总生成</h3>
+              <label>
+                记录项
+                <select id="summary-field"></select>
+              </label>
+              <label>
+                排版
+                <select id="summary-mode">
+                  <option value="photos">图片拼图</option>
+                  <option value="text">文字排版</option>
+                </select>
+              </label>
+              <div class="form-actions">
+                <button id="build-summary" class="primary-button" type="button">生成汇总</button>
+                <button id="download-summary" class="ghost-button" type="button">下载图片</button>
+              </div>
+            </div>
+            <div class="canvas-wrap">
+              <canvas id="summary-canvas" width="1200" height="900"></canvas>
+            </div>
+          </div>
+        </section>
+
+        <section id="timeline" class="tab-panel">
+          <div class="panel-grid">
+            <form id="node-form" class="tool-panel">
+              <h3>添加节点</h3>
+              <input type="hidden" id="node-id" />
+              <label>
+                日期
+                <input id="node-date" type="date" required />
+              </label>
+              <label>
+                标题
+                <input id="node-title" type="text" maxlength="36" required />
+              </label>
+              <label>
+                记录
+                <textarea id="node-note" rows="4" maxlength="180"></textarea>
+              </label>
+              <div class="form-actions">
+                <button class="primary-button" type="submit">保存节点</button>
+                <button id="node-reset" class="ghost-button" type="button">清空</button>
+              </div>
+            </form>
+            <div class="list-panel timeline-panel">
+              <div class="list-head">
+                <h3>倒计时时间轴</h3>
+                <span id="node-count" class="pill">0 个</span>
+              </div>
+              <div id="timeline-list" class="timeline-list"></div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script type="module" src="./app.mjs"></script>
+  </body>
+</html>
