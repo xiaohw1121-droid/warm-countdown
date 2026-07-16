@@ -355,10 +355,40 @@ function readImage(file, field) {
   if (!file) return;
   const reader = new FileReader();
   reader.addEventListener('load', () => {
-    field.image = String(reader.result || '');
-    renderRecordFields();
+    compressImage(String(reader.result || ''))
+      .then((image) => {
+        field.image = image;
+        renderRecordFields();
+      })
+      .catch(() => {
+        field.image = String(reader.result || '');
+        renderRecordFields();
+      });
   });
   reader.readAsDataURL(file);
+}
+
+function compressImage(src) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.addEventListener('load', () => {
+      const maxSize = 1280;
+      const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
+      if (scale >= 1 && src.length < 700000) {
+        resolve(src);
+        return;
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(image.width * scale));
+      canvas.height = Math.max(1, Math.round(image.height * scale));
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL('image/jpeg', 0.82));
+    });
+    image.addEventListener('error', reject);
+    image.src = src;
+  });
 }
 
 function saveRecord(event) {
@@ -430,6 +460,8 @@ function renderRecords() {
         const img = document.createElement('img');
         img.src = field.image;
         img.alt = field.label;
+        img.loading = 'lazy';
+        img.decoding = 'async';
         chip.append(img);
       }
       if (field.text) {

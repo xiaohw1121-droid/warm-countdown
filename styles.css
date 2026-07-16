@@ -201,6 +201,10 @@ h3 {
   border-radius: var(--radius);
   background: rgba(255, 253, 248, 0.82);
   box-shadow: var(--shadow);
+}
+
+.countdown-card,
+.tool-panel {
   backdrop-filter: blur(18px);
 }
 
@@ -446,6 +450,12 @@ button:active {
   border-radius: var(--radius);
   background: rgba(255, 255, 255, 0.66);
   padding: 14px;
+}
+
+.record-item {
+  content-visibility: auto;
+  contain: layout paint style;
+  contain-intrinsic-size: auto 260px;
 }
 
 .todo-item.done {

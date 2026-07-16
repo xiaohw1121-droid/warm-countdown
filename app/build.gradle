@@ -6,11 +6,15 @@ android {
     namespace "com.warmcountdown.app"
     compileSdk 36
 
+    buildFeatures {
+        buildConfig true
+    }
+
     defaultConfig {
         applicationId "com.warmcountdown.app"
         minSdk 26
         targetSdk 36
-        versionCode 1
-        versionName "1.0"
+        versionCode 5
+        versionName "1.4"
     }
 }
