@@ -14,22 +14,41 @@ public class AppStore {
         preferences = context.getSharedPreferences(PREF, Context.MODE_PRIVATE);
     }
 
-    public AppState load() {
+    public AppState.Workspace load() {
         String raw = preferences.getString(KEY, "");
         try {
-            if (!raw.isEmpty()) return AppState.fromJson(new JSONObject(raw));
+            if (!raw.isEmpty()) {
+                JSONObject json = new JSONObject(raw);
+                if (json.has("projects")) {
+                    AppState.Workspace workspace = AppState.Workspace.fromJson(json);
+                    if (!workspace.projects.isEmpty()) return workspace;
+                } else {
+                    AppState legacy = AppState.fromJson(json);
+                    AppState.Workspace workspace = new AppState.Workspace();
+                    workspace.projects.add(legacy);
+                    workspace.currentProjectId = legacy.id;
+                    return workspace;
+                }
+            }
         } catch (Exception ignored) {
         }
+        return freshWorkspace();
+    }
+
+    public void save(AppState.Workspace workspace) {
+        try {
+            preferences.edit().putString(KEY, workspace.toJson().toString()).apply();
+        } catch (Exception ignored) {
+        }
+    }
+
+    private AppState.Workspace freshWorkspace() {
         AppState state = new AppState();
         state.startDate = LocalDate.now().toString();
         state.endDate = LocalDate.now().plusDays(100).toString();
-        return state;
-    }
-
-    public void save(AppState state) {
-        try {
-            preferences.edit().putString(KEY, state.toJson().toString()).apply();
-        } catch (Exception ignored) {
-        }
+        AppState.Workspace workspace = new AppState.Workspace();
+        workspace.projects.add(state);
+        workspace.currentProjectId = state.id;
+        return workspace;
     }
 }

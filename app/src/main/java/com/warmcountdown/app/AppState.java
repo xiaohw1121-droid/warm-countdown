@@ -3,11 +3,14 @@ package com.warmcountdown.app;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 public class AppState {
+    public String id = id("project");
     public String title = "倒计时 100 天";
     public String startDate = "";
     public String endDate = "";
@@ -17,6 +20,7 @@ public class AppState {
 
     public JSONObject toJson() throws JSONException {
         JSONObject json = new JSONObject();
+        json.put("id", id);
         json.put("title", title);
         json.put("startDate", startDate);
         json.put("endDate", endDate);
@@ -28,6 +32,7 @@ public class AppState {
 
     public static AppState fromJson(JSONObject json) throws JSONException {
         AppState state = new AppState();
+        state.id = json.optString("id", state.id);
         state.title = json.optString("title", state.title);
         state.startDate = json.optString("startDate", state.startDate);
         state.endDate = json.optString("endDate", state.endDate);
@@ -117,6 +122,7 @@ public class AppState {
         public String label = "记录项";
         public String text = "";
         public String imagePath = "";
+        public String time = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"));
 
         static RecordItem fromJson(JSONObject json) {
             RecordItem item = new RecordItem();
@@ -124,6 +130,7 @@ public class AppState {
             item.label = json.optString("label", item.label);
             item.text = json.optString("text", "");
             item.imagePath = json.optString("imagePath", "");
+            item.time = json.optString("time", item.time);
             return item;
         }
 
@@ -133,6 +140,7 @@ public class AppState {
             json.put("label", label);
             json.put("text", text);
             json.put("imagePath", imagePath);
+            json.put("time", time);
             return json;
         }
     }
@@ -162,7 +170,61 @@ public class AppState {
         }
     }
 
+    public boolean mergeDuplicateRecords() {
+        List<DayRecord> merged = new ArrayList<>();
+        boolean changed = false;
+        for (DayRecord record : records) {
+            DayRecord existing = null;
+            for (DayRecord candidate : merged) {
+                if (candidate.date.equals(record.date)) {
+                    existing = candidate;
+                    break;
+                }
+            }
+            if (existing != null) {
+                existing.items.addAll(record.items);
+                changed = true;
+            } else {
+                merged.add(record);
+            }
+        }
+        records.clear();
+        records.addAll(merged);
+        return changed;
+    }
+
     public static String id(String prefix) {
         return prefix + "-" + UUID.randomUUID().toString().substring(0, 8);
+    }
+
+    public static class Workspace {
+        public String currentProjectId = "";
+        public final List<AppState> projects = new ArrayList<>();
+
+        public AppState current() {
+            for (AppState project : projects) {
+                if (project.id.equals(currentProjectId)) return project;
+            }
+            return projects.isEmpty() ? null : projects.get(0);
+        }
+
+        public JSONObject toJson() throws JSONException {
+            JSONObject json = new JSONObject();
+            json.put("currentProjectId", currentProjectId);
+            JSONArray projectsArray = new JSONArray();
+            for (AppState project : projects) projectsArray.put(project.toJson());
+            json.put("projects", projectsArray);
+            return json;
+        }
+
+        public static Workspace fromJson(JSONObject json) throws JSONException {
+            Workspace workspace = new Workspace();
+            readArray(json.optJSONArray("projects"), workspace.projects, AppState::fromJson);
+            workspace.currentProjectId = json.optString("currentProjectId", "");
+            if (workspace.current() == null && !workspace.projects.isEmpty()) {
+                workspace.currentProjectId = workspace.projects.get(0).id;
+            }
+            return workspace;
+        }
     }
 }
