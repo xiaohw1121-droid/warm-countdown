@@ -74,9 +74,6 @@ public class MainActivity extends Activity {
     private TextView endDateBox;
     private View rangeFill;
     private View rangeRest;
-    private TextView todoCountText;
-    private TextView recordCountText;
-    private TextView nodeCountText;
     private String currentTab = "todos";
     private static final String RECORD_FILTER_ALL = "全部记录项";
     private static final String[] WEEKDAYS_ZH = {"星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日"};
@@ -129,7 +126,6 @@ public class MainActivity extends Activity {
 
         root.addView(topbar());
         root.addView(heroCard());
-        root.addView(quickStrip());
 
         content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
@@ -297,33 +293,6 @@ public class MainActivity extends Activity {
         return view;
     }
 
-    private View quickStrip() {
-        LinearLayout strip = row();
-        strip.setPadding(0, dp(14), 0, dp(2));
-        View todoBox = quickStat(String.valueOf(state.todos.size()), "待办事项");
-        todoCountText = (TextView) todoBox.getTag();
-        strip.addView(todoBox, weightParams(1));
-        View recordBox = quickStat(String.valueOf(state.records.size()), "每日记录");
-        recordCountText = (TextView) recordBox.getTag();
-        strip.addView(recordBox, weightParams(1));
-        View nodeBox = quickStat(String.valueOf(state.nodes.size()), "关键节点");
-        nodeCountText = (TextView) nodeBox.getTag();
-        strip.addView(nodeBox, weightParams(1));
-        return strip;
-    }
-
-    private View quickStat(String value, String label) {
-        LinearLayout box = form();
-        box.setPadding(dp(11), dp(10), dp(9), dp(10));
-        box.setBackground(roundRect(Color.argb(184, 255, 255, 255), Color.rgb(232, 220, 206), dp(8)));
-        box.setElevation(dp(1));
-        TextView valueView = text(value, 18, ink, true);
-        box.addView(valueView);
-        box.addView(text(label, 11, muted, true));
-        box.setTag(valueView);
-        return box;
-    }
-
     private View bottomNav() {
         LinearLayout shell = row();
         shell.setPadding(dp(12), dp(8), dp(12), dp(12));
@@ -401,9 +370,6 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams restParams = (LinearLayout.LayoutParams) rangeRest.getLayoutParams();
         restParams.weight = 1f - ratio;
         rangeRest.setLayoutParams(restParams);
-        todoCountText.setText(String.valueOf(state.todos.size()));
-        recordCountText.setText(String.valueOf(state.records.size()));
-        nodeCountText.setText(String.valueOf(state.nodes.size()));
         content.removeAllViews();
         if ("todos".equals(currentTab)) renderTodos();
         if ("records".equals(currentTab)) renderRecords();
@@ -579,40 +545,25 @@ public class MainActivity extends Activity {
 
     private void renderRecords() {
         String recordSubtitle = state.records.isEmpty() ? null : "已记录 " + state.records.size() + " 条";
-        sectionTitle("每日记录", recordSubtitle, sky, "添加", v -> showRecordDialog(null));
-
         List<String> labels = recordLabels();
+        View filterChip = null;
         if (!labels.isEmpty()) {
             if (!RECORD_FILTER_ALL.equals(recordFilter) && !labels.contains(recordFilter)) recordFilter = RECORD_FILTER_ALL;
             List<String> filterOptions = new ArrayList<>();
             filterOptions.add(RECORD_FILTER_ALL);
             filterOptions.addAll(labels);
-            LinearLayout filterRow = row();
-            filterRow.setGravity(Gravity.CENTER_VERTICAL);
-            filterRow.setPadding(0, 0, 0, dp(10));
-            filterRow.addView(text("筛选", 13, muted, true));
-            Spinner filter = spinner(filterOptions.toArray(new String[0]), recordFilter);
-            filter.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-                @Override
-                public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                    String value = filterOptions.get(position);
-                    if (!value.equals(recordFilter)) {
-                        recordFilter = value;
-                        render();
-                    }
+            Button chip = filterChip("筛选");
+            chip.setOnClickListener(v -> showFilterPopup("按记录项筛选", filterOptions, recordFilter, value -> {
+                if (!value.equals(recordFilter)) {
+                    recordFilter = value;
+                    render();
                 }
-
-                @Override
-                public void onNothingSelected(AdapterView<?> parent) {
-                }
-            });
-            LinearLayout.LayoutParams filterParams = new LinearLayout.LayoutParams(0, -2, 1);
-            filterParams.setMargins(dp(8), 0, 0, 0);
-            filterRow.addView(filter, filterParams);
-            content.addView(filterRow);
+            }));
+            filterChip = chip;
         } else {
             recordFilter = RECORD_FILTER_ALL;
         }
+        sectionTitle("每日记录", recordSubtitle, sky, filterChip, "添加", v -> showRecordDialog(null));
 
         List<AppState.DayRecord> records = new ArrayList<>(state.records);
         records.sort((a, b) -> b.date.compareTo(a.date));
@@ -1461,6 +1412,10 @@ public class MainActivity extends Activity {
     }
 
     private void sectionTitle(String title, String subtitle, int accent, String action, View.OnClickListener listener) {
+        sectionTitle(title, subtitle, accent, null, action, listener);
+    }
+
+    private void sectionTitle(String title, String subtitle, int accent, View extra, String action, View.OnClickListener listener) {
         LinearLayout row = row();
         row.setPadding(0, dp(10), 0, dp(10));
 
@@ -1482,6 +1437,12 @@ public class MainActivity extends Activity {
         }
         left.addView(textWrap);
         row.addView(left, weightParams(1));
+
+        if (extra != null) {
+            LinearLayout.LayoutParams extraParams = new LinearLayout.LayoutParams(-2, -2);
+            extraParams.setMargins(0, 0, dp(8), 0);
+            row.addView(extra, extraParams);
+        }
 
         if (listener != null) {
             Button button = actionChip(action);
@@ -1855,6 +1816,89 @@ public class MainActivity extends Activity {
         return spinner;
     }
 
+    private Button filterChip(String value) {
+        Button button = new Button(this);
+        button.setText(value);
+        button.setTextSize(12.5f);
+        button.setTypeface(Typeface.DEFAULT_BOLD);
+        button.setTextColor(Color.rgb(58, 100, 132));
+        button.setPadding(dp(12), 0, dp(12), 0);
+        button.setMinWidth(0);
+        button.setMinimumWidth(0);
+        button.setMinHeight(0);
+        button.setMinimumHeight(0);
+        GradientDrawable background = gradient(Color.rgb(207, 230, 246), Color.rgb(228, 241, 250), dp(999));
+        background.setStroke(dp(1), Color.argb(71, 58, 100, 132));
+        button.setBackground(background);
+        flattenButton(button);
+        button.setLayoutParams(new LinearLayout.LayoutParams(-2, dp(28)));
+        return button;
+    }
+
+    private void showFilterPopup(String headline, List<String> options, String selected, FilterCallback callback) {
+        Dialog dialog = new Dialog(this);
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+            dialog.getWindow().setGravity(Gravity.CENTER);
+        }
+        dialog.setCancelable(true);
+        dialog.setCanceledOnTouchOutside(true);
+
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setMinimumWidth(dp(200));
+        card.setBackground(roundRect(Color.rgb(255, 253, 248), Color.argb(71, 58, 100, 132), dp(18)));
+        card.setElevation(dp(10));
+
+        TextView headlineView = text(headline, 12, Color.rgb(58, 100, 132), true);
+        headlineView.setPadding(dp(16), dp(14), dp(16), dp(10));
+        card.addView(headlineView);
+
+        View divider = new View(this);
+        divider.setBackground(new android.graphics.drawable.ColorDrawable(Color.argb(36, 58, 100, 132)));
+        card.addView(divider, new LinearLayout.LayoutParams(-1, dp(1)));
+
+        LinearLayout list = new LinearLayout(this);
+        list.setOrientation(LinearLayout.VERTICAL);
+        list.setPadding(dp(6), dp(6), dp(6), dp(6));
+        int rowHeight = dp(40);
+        for (String option : options) {
+            boolean isSelected = option.equals(selected);
+            TextView optionView = text(option, 13, isSelected ? Color.rgb(58, 100, 132) : ink, isSelected);
+            optionView.setGravity(Gravity.CENTER_VERTICAL);
+            optionView.setPadding(dp(14), 0, dp(14), 0);
+            optionView.setBackground(isSelected ? roundRect(Color.argb(46, 137, 185, 218), Color.TRANSPARENT, dp(10)) : null);
+            optionView.setClickable(true);
+            optionView.setFocusable(true);
+            optionView.setOnClickListener(v -> {
+                callback.set(option);
+                dialog.dismiss();
+            });
+            LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(-1, rowHeight);
+            rowParams.setMargins(dp(2), dp(2), dp(2), dp(2));
+            list.addView(optionView, rowParams);
+        }
+
+        int maxHeight = rowHeight * 8;
+        ScrollView scroll = new ScrollView(this) {
+            @Override
+            protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+                super.onMeasure(widthMeasureSpec, View.MeasureSpec.makeMeasureSpec(maxHeight, View.MeasureSpec.AT_MOST));
+            }
+        };
+        scroll.addView(list);
+        card.addView(scroll);
+
+        FrameLayout wrap = new FrameLayout(this);
+        wrap.setPadding(dp(36), 0, dp(36), 0);
+        FrameLayout.LayoutParams cardParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        cardParams.gravity = Gravity.CENTER;
+        wrap.addView(card, cardParams);
+
+        dialog.setContentView(wrap);
+        dialog.show();
+    }
+
     private LinearLayout.LayoutParams weightParams(float weight) {
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, -2, weight);
         params.setMargins(0, 0, dp(8), 0);
@@ -1990,5 +2034,9 @@ public class MainActivity extends Activity {
 
     interface DateCallback {
         void set(String date);
+    }
+
+    interface FilterCallback {
+        void set(String value);
     }
 }
